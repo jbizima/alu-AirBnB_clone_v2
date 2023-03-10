@@ -1,24 +1,16 @@
 #!/usr/bin/python3
 """
-Fabric script (based on the file 1-pack_web_static.py) that
-       distributes an archive to your web servers
-Returns False if the file at the path archive_path doesn't exist
+script that distributes an archive to your web servers,
+using the function do_deploy
 """
 import os
-from fabric.api import env
-from fabric.api import put
-from fabric.api import run
-
-env.hosts = ['18.215.163.12', '54.91.24.222']
+from fabric.api import put, run, env
+env.hosts = ['54.167.15.9', '204.236.203.218']
 
 
 def do_deploy(archive_path):
-    """Distributes an archive to a web server.
-    Args:
-        archive_path (str): The path of the archive to distribute.
-    Returns:
-        If the file doesn't exist at archive_path or an error occurs - False.
-        Otherwise - True.
+    """
+    function that distributes an archive to web servers
     """
     if archive_path is None or not os.path.exists(archive_path):
         return False
