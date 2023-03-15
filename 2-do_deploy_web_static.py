@@ -1,41 +1,50 @@
 #!/usr/bin/python3
-"""
-script that distributes an archive to your web servers,
-using the function do_deploy
-"""
+"""Fabric script that distributes an archive to a web servers"""
+
+from fabric.api import local, env, put, run
+from datetime import datetime
 import os
-from fabric.api import put, run, env
-env.hosts = ['54.146.33.120', '52.207.240.194']
+
+env.hosts = ['54.167.15.9', '54.162.155.171']
+env.user = 'ubuntu'
+
+
+def do_pack():
+    """generates a .tgz archive from the contents of the web_static folder"""
+
+    now = datetime.now()
+    date = now.strftime("%Y%m%d%H%M%S")
+    filename = "versions/web_static_{}.tgz".format(date)
+    local("mkdir -p versions")
+    local("tar -cvzf {} web_static".format(filename))
+    if os.path.exists(filename):
+        return filename
+    return None
 
 
 def do_deploy(archive_path):
-    """
-    function that distributes an archive to web servers
-    """
-    if archive_path is None or not os.path.exists(archive_path):
+    """distributes an archive to a web servers"""
+
+    if not os.path.exists(archive_path):
         return False
     try:
-        file = archive_path.split("/")[-1]
-        file_no_ext = file.split(".")[0]
-        path = "/data/web_static/releases/"
-        # upload the archive to the /tmp/ directory of the web server
         put(archive_path, "/tmp/")
-        # create a folder with the same name as the archive
-        # without the extension
-        run("mkdir -p {}{}/".format(path, file_no_ext))
-        # uncompress the archive to the folder
-        run("tar -xzf /tmp/{} -C {}{}/".format(
-            file, path, file_no_ext))
-        # delete the archive from the web server
-        run("rm /tmp/{}".format(file))
-        run("mv {0}{1}/web_static/* {0}{1}/".format(path, file_no_ext))
-        # delete the symbolic link /data/web_static/current from the web server
-        run("rm -rf {}{}/web_static".format(path, file_no_ext))
-        run("rm -rf /data/web_static/current")
-        # create new symbolic link /data/web_static/current on web server
-        # linked to the new version of your code
-        run("ln -s {}{}/ /data/web_static/current".
-            format(path, file_no_ext))
+        filename = archive_path.split("/")[-1]
+        name = filename.split(".")[0]
+        run("mkdir -p /data/web_static/releases/{}/".format(name), timeout=10)
+        run("tar -xzf /tmp/{} -C /data/web_static/releases/{}/".format(
+            filename, name), timeout=10)
+        run("rm /tmp/{}".format(filename), timeout=10)
+        run("cp -rf /data/web_static/releases/{}/web_static/* \
+            /data/web_static/releases/{}/".format(name, name), timeout=10)
+        run("rm -rf /data/web_static/releases/{}/web_static".format(name), timeout=10)
+        run("rm -rf /data/web_static/current", timeout=10)
+        run("ln -s /data/web_static/releases/{}/ \
+            /data/web_static/current".format(
+            name), timeout=10)
         return True
-    except:
+    except FileNotFoundError:
+        return False
+    except Exception as e:
+        print(e)
         return False
